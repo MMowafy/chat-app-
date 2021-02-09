@@ -28,9 +28,8 @@ docker-compose up --build
             {
                 "query": {
                     "multi_match": {
-                        "query": "water",
+                        "query": "chat message",
                         "type": "cross_fields",
-                        "tie_breaker": 1,
                         "fields": [
                             "messages.match^10",
                             "messages.exactMatch^50"
