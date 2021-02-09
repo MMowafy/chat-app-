@@ -1,0 +1,109 @@
+version: "3.8"
+services:
+  chat_go_api:
+    container_name: chat_api
+    build:
+      context: ./api
+      target: builder
+    ports:
+      - "8080:8080"
+    restart: on-failure
+    volumes:
+      - ./api:/go/src/app
+    depends_on:
+      - chat_ruby_api
+      - mysql
+      #- elasticsearch
+      - rabbitmq
+      - redis
+    command: reflex -r "\.go$$" -s -- sh -c "go run ./"
+    networks:
+      - traefik
+  chat_go_cli:
+    container_name: chat_cli
+    build:
+      context: ./cli
+      target: builder
+    restart: on-failure
+    volumes:
+      - ./cli:/go/src/app
+    depends_on:
+      - chat_go_api
+    command: reflex -r "\.go$$" -s -- sh -c "go run ./"
+    networks:
+      - traefik
+  chat_ruby_api:
+    depends_on:
+      - redis
+      - mysql
+    build: ./mychatapp
+    ports:
+      - "3000:3000"
+    environment:
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      DB_DATABASE: appdb
+      DB_PORT: 3306
+      DB_HOST: db
+      RAILS_ENV: development
+      RAILS_MAX_THREADS: 5
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - "./mychatapp:/app"
+      - "./mychatapp/config/database.yml:/app/config/database.yml"
+    restart: on-failure
+    networks:
+      - traefik
+  mysql:
+    image: mysql:5.7
+    restart: always
+    container_name: mysql-test
+    environment:
+      MYSQL_DATABASE: 'appdb'
+      # So you don't have to use root, but you can if you like
+      MYSQL_USER: 'user'
+      # You can use whatever password you like
+      MYSQL_PASSWORD: 'password'
+      # Password for root access
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      # <Port exposed> : < MySQL Port running inside container>
+      - '3306:3306'
+    expose:
+      # Opens port 3306 on the container
+      - '3306'
+      # Where our data will be persisted
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      - traefik
+  redis:
+    container_name: redis-test
+    image: redis
+    volumes:
+      - ./data/config/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    restart: always
+    networks:
+      - traefik
+  rabbitmq:
+    container_name: rabbitmq-test
+    image: "rabbitmq:3-management"
+    hostname: "rabbitmq"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+      RABBITMQ_DEFAULT_USER: "rabbitmq"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+      RABBITMQ_DEFAULT_VHOST: "/"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    restart: always
+
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    driver: bridge

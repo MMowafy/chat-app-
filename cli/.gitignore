@@ -1,0 +1,9 @@
+/.idea
+/src
+/bin
+/pkg
+/data
+/api/gin-bin
+app
+vendor/
+build
