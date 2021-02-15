@@ -23,14 +23,13 @@ docker-compose up --build
 
 - What is missing:
     - I added the appropriate mapping and creation of indexes of elasticSearch when go app is up
-      but need to add an api to do the search with this query to get exact match first then partial match
+      but need to add an api to do the search with this query to get exact match first then partial match according to score given
         GET /messages_index/_search
             {
                 "query": {
                     "multi_match": {
-                        "query": "water",
+                        "query": "chat message",
                         "type": "cross_fields",
-                        "tie_breaker": 1,
                         "fields": [
                             "messages.match^10",
                             "messages.exactMatch^50"
